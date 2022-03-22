@@ -5,3 +5,5 @@ A package containing various data collections, atomics, and Foundation extension
 I'll come back and expand this readme to actually describe the collections and their intended use cases (you'll notice many sacrifice performance for concurrency within a small memory space).
 
 There are plenty of object extensions in here that I have not authored myself, proper attribution is given in the files where they are declared.
+
+

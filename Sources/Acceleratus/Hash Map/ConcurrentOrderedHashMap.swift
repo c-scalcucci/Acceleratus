@@ -52,7 +52,17 @@ public class ConcurrentOrderedHashMap<K: Hashable, V> : ConcurrentObject {
             })
         } set {
             exclusiveAction({
-                self._dataSource[k] = newValue
+                if let value = newValue {
+                    if self._dataSource.containsKey(k) {
+                        self._dataSource.updateValue(value, forKey: k)
+                    } else {
+                        self._dataSource[k] = value
+                        self._keys.insert(k)
+                    }
+                } else {
+                    self._dataSource.removeValue(forKey: k)
+                    self._keys.remove(k)
+                }
             })
         }
     }
