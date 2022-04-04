@@ -10,12 +10,12 @@ import AcceleratusObjCXX
 /// An ordered set is an ordered collection of instances of `Element` in which
 /// uniqueness of the objects is guaranteed.
 public class ConcurrentOrderedSet<E: Hashable>: ConcurrentObject,
-                                                 Equatable,
-                                                 Collection,
-                                                 ExpressibleByArrayLiteral,
-                                                 RandomAccessCollection,
-                                                 RangeReplaceableCollection,
-                                                 MutableCollection {
+                                                Equatable,
+                                                Collection,
+                                                ExpressibleByArrayLiteral,
+                                                RandomAccessCollection,
+                                                RangeReplaceableCollection,
+                                                MutableCollection {
     public typealias Element = E
     public typealias Index = Int
     public typealias Indices = Range<Int>
@@ -175,9 +175,7 @@ public class ConcurrentOrderedSet<E: Hashable>: ConcurrentObject,
     }
 
     @inlinable
-    public func replaceSubrange<C: Collection, R: RangeExpression>(_ subrange: R, with newElements: C) where Element == C.Element,
-                                                                                                                      C.Element: Hashable,
-                                                                                                                      Index == R.Bound {
+    public func replaceSubrange<C: Collection, R: RangeExpression>(_ subrange: R, with newElements: C) where Element == C.Element, C.Element: Hashable, Index == R.Bound {
         exclusiveAction({
             self.array[subrange].forEach({
                 self.indexes.removeValue(forKey: $0)
@@ -248,7 +246,7 @@ public class ConcurrentOrderedSet<E: Hashable>: ConcurrentObject,
                     return self.indexes[element]
                 }
             }
-            return nil 
+            return nil
         })
     }
 
@@ -495,7 +493,7 @@ public class ConcurrentOrderedSet<E: Hashable>: ConcurrentObject,
             self.append(newElement)
             return self
         })
-     }
+    }
 
     @inlinable
     public func removing(_ element: Element) -> ConcurrentOrderedSet {
@@ -503,7 +501,7 @@ public class ConcurrentOrderedSet<E: Hashable>: ConcurrentObject,
             self.remove(element)
             return self
         })
-     }
+    }
 
     @inlinable
     public func inserting(_ element: Element) -> ConcurrentOrderedSet {
@@ -514,10 +512,10 @@ public class ConcurrentOrderedSet<E: Hashable>: ConcurrentObject,
     }
 
     /**
-        Inserts the given element into the set unconditionally at the end.
+     Inserts the given element into the set unconditionally at the end.
 
-        - parameter newElement: An element to insert into the set.
-        - returns: The OrderedSet
+     - parameter newElement: An element to insert into the set.
+     - returns: The OrderedSet
      */
     @inlinable
     public func updating(_ newElement: Element) -> ConcurrentOrderedSet {
@@ -642,14 +640,14 @@ extension ConcurrentOrderedSet {
     }
 
     /**
-        Inserts the given element into the set unconditionally.
+     Inserts the given element into the set unconditionally.
 
-        - parameter newElement: An element to insert into the set.
+     - parameter newElement: An element to insert into the set.
 
-        - returns: For ordinary sets, an element equal to newMember if the set already contained such a member; otherwise, nil.
-                   In some cases, the returned element may be distinguishable from newMember by identity comparison or some other means.
-                   For sets where the set type and element type are the same, like OptionSet types, this method returns any intersection
-                   between the set and [newMember], or nil if the intersection is empty.
+     - returns: For ordinary sets, an element equal to newMember if the set already contained such a member; otherwise, nil.
+     In some cases, the returned element may be distinguishable from newMember by identity comparison or some other means.
+     For sets where the set type and element type are the same, like OptionSet types, this method returns any intersection
+     between the set and [newMember], or nil if the intersection is empty.
      */
     @inlinable @discardableResult
     public func update(with newMember: Element) -> Element? {

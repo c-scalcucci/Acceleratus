@@ -9,11 +9,11 @@ import Foundation
 /// An ordered set is an ordered collection of instances of `Element` in which
 /// uniqueness of the objects is guaranteed.
 public class OrderedSet<E: Hashable>: Equatable,
-                                       Collection,
-                                       ExpressibleByArrayLiteral,
-                                       RandomAccessCollection,
-                                       RangeReplaceableCollection,
-                                       MutableCollection {
+                                      Collection,
+                                      ExpressibleByArrayLiteral,
+                                      RandomAccessCollection,
+                                      RangeReplaceableCollection,
+                                      MutableCollection {
     public typealias Element = E
     public typealias Index = Int
     public typealias Indices = Range<Int>
@@ -486,12 +486,27 @@ public class OrderedSet<E: Hashable>: Equatable,
 
 extension OrderedSet {
 
-    public func insert(_ newElement: E, at i: Int) {
-        preconditionFailure("OrderedSet does not support inserting at an index!")
+    @inlinable
+    public func insert(_ newElement: OrderedSet.Element, at i: OrderedSet.Index) {
+        self.insert(newElement, i)
     }
 
-    public func insert<S>(contentsOf newElements: S, at i: Int) where S : Collection, E == S.Element {
-        preconditionFailure("OrderedSet does not support inserting at an index!")
+    @inlinable
+    public func insert(_ newElement: Element, _ index: Int) {
+        switch self.insertOrder {
+        case .temporal:
+            if self.set.remove(newElement) != nil {
+                self.array.remove(at: self.indexes[newElement]!)
+            }
+            self.array.insert(newElement, at: index)
+            self.indexes.removeAll()
+            self.array.enumerated().forEach({ index, element in
+                self.indexes[element] = index
+            })
+            self.set.insert(newElement)
+        case .insertSort:
+            preconditionFailure("OrderedSet does not support inserting at an index when type is insertSort!")
+        }
     }
 
     @inlinable @discardableResult
