@@ -182,7 +182,7 @@ public class ConcurrentSet<E: Hashable>: ConcurrentObject,
 extension ConcurrentSet {
 
     @inlinable @discardableResult
-    public func insert(_ newMember: Element) -> (inserted: Bool, memberAfterInset: Element) {
+    public func insert(_ newMember: Element) -> (inserted: Bool, memberAfterInsert: Element) {
         exclusiveReturn({
             return self.set.insert(newMember)
         })

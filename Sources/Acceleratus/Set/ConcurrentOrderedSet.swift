@@ -19,7 +19,7 @@ public class ConcurrentOrderedSet<E: Hashable>: ConcurrentObject,
     public typealias Element = E
     public typealias Index = Int
     public typealias Indices = Range<Int>
-    public typealias SubSequence = Slice<OrderedSet<E>>
+    public typealias SubSequence = Slice<ConcurrentOrderedSet<E>>
     public typealias Iterator = IndexingIterator<ConcurrentOrderedSet>
 
     public private(set) var mutex = SharedRecursiveMutex()
@@ -128,17 +128,17 @@ public class ConcurrentOrderedSet<E: Hashable>: ConcurrentObject,
 
     // Generic subscript to support `PartialRangeThrough`, `PartialRangeUpTo`, `PartialRangeFrom` and `FullRange`
     @inlinable
-    public subscript<R>(r: R) -> ConcurrentOrderedSet.SubSequence where R : RangeExpression, ConcurrentOrderedSet.Index == R.Bound {
+    public subscript<R>(r: R) -> ConcurrentOrderedSet<E>.SubSequence where R : RangeExpression, ConcurrentOrderedSet<E>.Index == R.Bound {
         sharedReturn({ return SubSequence(self.array[r]) })
     }
 
     @inlinable
-    public subscript(bounds: Range<ConcurrentOrderedSet.Index>) -> ConcurrentOrderedSet.SubSequence {
+    public subscript(bounds: Range<ConcurrentOrderedSet<E>.Index>) -> ConcurrentOrderedSet<E>.SubSequence {
         sharedReturn({ return SubSequence(self.array[bounds]) })
     }
 
     @inlinable
-    public subscript(position: ConcurrentOrderedSet.Index) -> ConcurrentOrderedSet.Element {
+    public subscript(position: ConcurrentOrderedSet<E>.Index) -> ConcurrentOrderedSet<E>.Element {
         get {
             sharedReturn({ self.array[position] })
         } set {
@@ -147,7 +147,12 @@ public class ConcurrentOrderedSet<E: Hashable>: ConcurrentObject,
     }
 
     @inlinable
-    public func set(_ element: Element, at position: ConcurrentOrderedSet.Index) {
+    public subscript(x: (UnboundedRange_) -> ()) -> ConcurrentOrderedSet<E>.SubSequence {
+        sharedReturn({ return SubSequence(self.array[x]) })
+    }
+
+    @inlinable
+    public func set(_ element: Element, at position: ConcurrentOrderedSet<E>.Index) {
         exclusiveAction({
             guard let _ = self.set.update(with: element) else { return }
             self.array[position] = element
@@ -175,7 +180,7 @@ public class ConcurrentOrderedSet<E: Hashable>: ConcurrentObject,
     }
 
     @inlinable
-    public func replaceSubrange<C: Collection, R: RangeExpression>(_ subrange: R, with newElements: C) where Element == C.Element, C.Element: Hashable, Index == R.Bound {
+    public func replaceSubrange<C: Collection, R: RangeExpression>(_ subrange: R, with newElements: C) where Element == C.Element, Index == R.Bound {
         exclusiveAction({
             self.array[subrange].forEach({
                 self.indexes.removeValue(forKey: $0)
@@ -255,7 +260,7 @@ public class ConcurrentOrderedSet<E: Hashable>: ConcurrentObject,
     //
 
     @inlinable
-    public func append(_ elements: [ConcurrentOrderedSet.Element]) {
+    public func append(_ elements: [ConcurrentOrderedSet<E>.Element]) {
         self.append(contentsOf: elements)
     }
 
@@ -287,7 +292,7 @@ public class ConcurrentOrderedSet<E: Hashable>: ConcurrentObject,
     }
 
     @inlinable
-    public func append(_ newElement: ConcurrentOrderedSet.Element) {
+    public func append(_ newElement: ConcurrentOrderedSet<E>.Element) {
         exclusiveAction({
             let inserted = self.set.insert(newElement).inserted
 
@@ -311,7 +316,7 @@ public class ConcurrentOrderedSet<E: Hashable>: ConcurrentObject,
     }
 
     @inlinable
-    public func remove(_ elements: [ConcurrentOrderedSet.Element]) {
+    public func remove(_ elements: [ConcurrentOrderedSet<E>.Element]) {
         exclusiveAction({
             var removed : Bool = false
             elements.forEach({
@@ -551,7 +556,7 @@ public class ConcurrentOrderedSet<E: Hashable>: ConcurrentObject,
 extension ConcurrentOrderedSet {
 
     @inlinable
-    public func insert(_ newElement: ConcurrentOrderedSet.Element, at i: ConcurrentOrderedSet.Index) {
+    public func insert(_ newElement: ConcurrentOrderedSet<E>.Element, at i: ConcurrentOrderedSet<E>.Index) {
         self.insert(newElement, i)
     }
 

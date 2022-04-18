@@ -289,7 +289,7 @@ extension LinkedList {
 extension LinkedList {
     @inlinable
     public func map<U>(transform: (T) -> U) -> LinkedList<U> {
-        var result = LinkedList<U>()
+        let result = LinkedList<U>()
         var node = head
         while let nd = node {
             result.append(transform(nd.value))
@@ -300,7 +300,7 @@ extension LinkedList {
 
     @inlinable
     public func filter(predicate: (T) -> Bool) -> LinkedList<T> {
-        var result = LinkedList<T>()
+        let result = LinkedList<T>()
         var node = head
         while let nd = node {
             if predicate(nd.value) {

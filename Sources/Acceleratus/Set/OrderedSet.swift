@@ -122,22 +122,27 @@ public class OrderedSet<E: Hashable>: Equatable,
 
     // Generic subscript to support `PartialRangeThrough`, `PartialRangeUpTo`, `PartialRangeFrom` and `FullRange`
     @inlinable
-    public subscript<R>(r: R) -> OrderedSet.SubSequence where R : RangeExpression, OrderedSet.Index == R.Bound {
+    public subscript<R>(r: R) -> OrderedSet<E>.SubSequence where R : RangeExpression, OrderedSet<E>.Index == R.Bound {
         return SubSequence(self.array[r])
     }
 
     @inlinable
-    public subscript(bounds: Range<OrderedSet.Index>) -> OrderedSet.SubSequence {
+    public subscript(bounds: Range<OrderedSet<E>.Index>) -> OrderedSet<E>.SubSequence {
         return SubSequence(self.array[bounds])
     }
 
     @inlinable
-    public subscript(position: OrderedSet.Index) -> OrderedSet.Element {
+    public subscript(position: OrderedSet<E>.Index) -> OrderedSet<E>.Element {
         get {
             self.array[position]
         } set {
             self.set(newValue, at: position)
         }
+    }
+
+    @inlinable
+    public subscript(x: (UnboundedRange_) -> ()) -> OrderedSet<E>.SubSequence {
+        return SubSequence(self.array[x])
     }
 
     @inlinable
@@ -172,7 +177,7 @@ public class OrderedSet<E: Hashable>: Equatable,
     }
 
     @inlinable
-    public func replaceSubrange<C: Collection, R: RangeExpression>(_ subrange: R, with newElements: C) where Element == C.Element, C.Element: Hashable,Index == R.Bound {
+    public func replaceSubrange<C: Collection, R: RangeExpression>(_ subrange: R, with newElements: C) where Element == C.Element, Index == R.Bound {
         self.array[subrange].forEach({
             self.indexes.removeValue(forKey: $0)
             self.set.remove($0)
@@ -283,7 +288,7 @@ public class OrderedSet<E: Hashable>: Equatable,
     }
 
     @inlinable
-    public func remove(_ elements: [OrderedSet.Element]) {
+    public func remove(_ elements: [OrderedSet<E>.Element]) {
         var removed : Bool = false
         elements.forEach({
             if let _ = self.set.remove($0) {
@@ -487,7 +492,7 @@ public class OrderedSet<E: Hashable>: Equatable,
 extension OrderedSet {
 
     @inlinable
-    public func insert(_ newElement: OrderedSet.Element, at i: OrderedSet.Index) {
+    public func insert(_ newElement: OrderedSet<E>.Element, at i: OrderedSet<E>.Index) {
         self.insert(newElement, i)
     }
 
