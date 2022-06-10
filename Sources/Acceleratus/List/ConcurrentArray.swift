@@ -8,6 +8,7 @@ import Foundation
 import AcceleratusObjCXX
 
 public class ConcurrentArray<T> : ConcurrentObject {
+    public typealias Element = T
 
     public private(set) var mutex = SharedRecursiveMutex()
 
@@ -81,7 +82,16 @@ public class ConcurrentArray<T> : ConcurrentObject {
         })
     }
 
-    // MARK:- High Order
+    //
+    // MARK: High Order
+    //
+
+    @inlinable
+    public func first(where predicate: (T) throws -> Bool) rethrows -> Element? {
+        try sharedReturn({
+            return try self._dataSource.first(where: predicate)
+        })
+    }
 
     @inlinable
     public func forEach(_ fn: (T) throws -> ()) rethrows {
@@ -96,9 +106,16 @@ public class ConcurrentArray<T> : ConcurrentObject {
     }
 
     @inlinable
-    public func reduce<X>(_ initialResult: X, _ nextPartialResult: (X, T) throws -> X) rethrows -> X {
+    public func reduce<X>(_ initialResult: X, _ nextPartialResult: (X, Element) throws -> X) rethrows -> X {
         try sharedReturn({
             return try self._dataSource.reduce(initialResult, nextPartialResult)
+        })
+    }
+
+    @inlinable
+    public func reduce<X>(into initialResult: X, _ updateAccumulatingResult: (inout X, Element) throws -> ()) rethrows -> X {
+        try sharedReturn({
+            return try self._dataSource.reduce(into: initialResult, updateAccumulatingResult)
         })
     }
 
@@ -114,7 +131,6 @@ public class ConcurrentArray<T> : ConcurrentObject {
         try sharedReturn({
             return try self._dataSource.map(fn)
         })
-
     }
 
     @inlinable

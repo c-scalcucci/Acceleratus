@@ -535,16 +535,55 @@ public class ConcurrentOrderedSet<E: Hashable>: ConcurrentObject,
     //
 
     @inlinable
-    public func forEach(_ body: (Element) throws -> Void) rethrows {
-        try sharedAction({
-            try self.array.forEach(body)
+    public func first(where predicate: (Element) throws -> Bool) rethrows -> Element? {
+        try sharedReturn({
+            return try self.array.first(where: predicate)
         })
     }
 
     @inlinable
-    public func first(where predicate: (Element) throws -> Bool) rethrows -> Element? {
+    public func forEach(_ fn: (Element) throws -> ()) rethrows {
+        try sharedAction({
+            let tmp = self.array
+
+            for i in tmp {
+                try fn(i)
+            }
+        })
+    }
+
+    @inlinable
+    public func reduce<X>(_ initialResult: X, _ nextPartialResult: (X, Element) throws -> X) rethrows -> X {
         try sharedReturn({
-            return try array.first(where: predicate)
+            return try self.array.reduce(initialResult, nextPartialResult)
+        })
+    }
+
+    @inlinable
+    public func reduce<X>(into initialResult: X, _ updateAccumulatingResult: (inout X, Element) throws -> ()) rethrows -> X {
+        try sharedReturn({
+            return try self.array.reduce(into: initialResult, updateAccumulatingResult)
+        })
+    }
+
+    @inlinable
+    public func filter(_ fn: (Element) throws -> Bool) rethrows -> [Element] {
+        try sharedReturn({
+            return try self.array.filter(fn)
+        })
+    }
+
+    @inlinable
+    public func map<X>(_ fn: (Element) throws -> X) rethrows -> [X] {
+        try sharedReturn({
+            return try self.array.map(fn)
+        })
+    }
+
+    @inlinable
+    public func compactMap<X>(_ fn: (Element) throws -> X?) rethrows -> [X] {
+        try sharedReturn({
+            return try self.array.compactMap(fn)
         })
     }
 }

@@ -7,6 +7,8 @@
 import Foundation
 
 public class LinkedList<T> {
+    public typealias Element = T
+
     public typealias Node = LinkedListNode<T>
 
     public class LinkedListNode<T> {
@@ -258,6 +260,7 @@ public class LinkedList<T> {
         let node = self.node(at: index)
         return remove(node: node)
     }
+
 }
 
 extension LinkedList: CustomStringConvertible {

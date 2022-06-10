@@ -161,16 +161,55 @@ public class ConcurrentSet<E: Hashable>: ConcurrentObject,
     //
 
     @inlinable
-    public func forEach(_ body: (Element) throws -> Void) rethrows {
-        try sharedAction({
-            try self.set.forEach(body)
+    public func first(where predicate: (Element) throws -> Bool) rethrows -> Element? {
+        try sharedReturn({
+            return try self.set.first(where: predicate)
         })
     }
 
     @inlinable
-    public func first(where predicate: (Element) throws -> Bool) rethrows -> Element? {
+    public func forEach(_ fn: (Element) throws -> ()) rethrows {
+        try sharedAction({
+            let tmp = self.set
+
+            for i in tmp {
+                try fn(i)
+            }
+        })
+    }
+
+    @inlinable
+    public func reduce<X>(_ initialResult: X, _ nextPartialResult: (X, Element) throws -> X) rethrows -> X {
         try sharedReturn({
-            return try set.first(where: predicate)
+            return try self.set.reduce(initialResult, nextPartialResult)
+        })
+    }
+
+    @inlinable
+    public func reduce<X>(into initialResult: X, _ updateAccumulatingResult: (inout X, Element) throws -> ()) rethrows -> X {
+        try sharedReturn({
+            return try self.set.reduce(into: initialResult, updateAccumulatingResult)
+        })
+    }
+
+    @inlinable
+    public func filter(_ fn: (Element) throws -> Bool) rethrows -> [Element] {
+        try sharedReturn({
+            return try self.set.filter(fn)
+        })
+    }
+
+    @inlinable
+    public func map<X>(_ fn: (Element) throws -> X) rethrows -> [X] {
+        try sharedReturn({
+            return try self.set.map(fn)
+        })
+    }
+
+    @inlinable
+    public func compactMap<X>(_ fn: (Element) throws -> X?) rethrows -> [X] {
+        try sharedReturn({
+            return try self.set.compactMap(fn)
         })
     }
 }

@@ -6,7 +6,9 @@
 
 import Foundation
 
-public class DoubleLinkedList<T: Equatable> {
+public class DoubleLinkedList<T: Equatable> : NSObject {
+    public typealias Element = T
+
     public class Node<T: Equatable> : Equatable {
         public var value: T
         public var next: Node?
@@ -26,8 +28,6 @@ public class DoubleLinkedList<T: Equatable> {
     public var head: Node<T>?
     public var tail: Node<T>?
     public var count: Int = 0
-
-    public init() {}
 
     @inlinable
     public var isEmpty : Bool {
@@ -430,11 +430,8 @@ public class DoubleLinkedList<T: Equatable> {
             dropFirst()
         }
     }
-}
 
-extension DoubleLinkedList : CustomStringConvertible, CustomDebugStringConvertible {
-    @inlinable
-    public var description: String {
+    public override var description: String {
         var result = "["
         self.forEach({
             result += "\($0)"
@@ -447,8 +444,7 @@ extension DoubleLinkedList : CustomStringConvertible, CustomDebugStringConvertib
 
     }
 
-    @inlinable
-    public var debugDescription: String {
+    public override var debugDescription: String {
         var result = "[\n"
         var i = 0
         self.forEach({

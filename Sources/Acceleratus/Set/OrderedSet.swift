@@ -412,11 +412,6 @@ public class OrderedSet<E: Hashable>: Equatable,
         return self
     }
 
-    @inlinable
-    public func filter(_ fn: (E) throws -> Bool) rethrows -> Set<E> {
-        return try self.set.filter(fn)
-    }
-
     @inlinable @discardableResult
     public func updateInPlace(_ newElement: Element) -> Element? {
         if let index = self.array.firstIndex(of: newElement) {
@@ -475,13 +470,42 @@ public class OrderedSet<E: Hashable>: Equatable,
     //
 
     @inlinable
-    public func forEach(_ body: (Element) throws -> Void) rethrows {
-        try self.array.forEach(body)
+    public func first(where predicate: (Element) throws -> Bool) rethrows -> Element? {
+        return try self.array.first(where: predicate)
     }
 
     @inlinable
-    public func first(where predicate: (Element) throws -> Bool) rethrows -> Element? {
-        return try array.first(where: predicate)
+    public func forEach(_ fn: (Element) throws -> ()) rethrows {
+        let tmp = self.array
+
+        for i in tmp {
+            try fn(i)
+        }
+    }
+
+    @inlinable
+    public func reduce<X>(_ initialResult: X, _ nextPartialResult: (X, Element) throws -> X) rethrows -> X {
+        return try self.array.reduce(initialResult, nextPartialResult)
+    }
+
+    @inlinable
+    public func reduce<X>(into initialResult: X, _ updateAccumulatingResult: (inout X, Element) throws -> ()) rethrows -> X {
+        return try self.array.reduce(into: initialResult, updateAccumulatingResult)
+    }
+
+    @inlinable
+    public func filter(_ fn: (Element) throws -> Bool) rethrows -> [Element] {
+        return try self.array.filter(fn)
+    }
+
+    @inlinable
+    public func map<X>(_ fn: (Element) throws -> X) rethrows -> [X] {
+        return try self.array.map(fn)
+    }
+
+    @inlinable
+    public func compactMap<X>(_ fn: (Element) throws -> X?) rethrows -> [X] {
+        return try self.array.compactMap(fn)
     }
 }
 
