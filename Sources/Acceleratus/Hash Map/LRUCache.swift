@@ -52,95 +52,107 @@ public class LRUCache<K: Hashable, V> : ConcurrentObject,
 
     @inlinable
     public var count : Int {
-        sharedReturn({
-            return self._dataSource.count
-        })
+        defer { self.mutex.unlock_shared() }
+        self.mutex.lock_shared()
+
+        return self._dataSource.count
     }
 
     @inlinable
     public var isEmpty : Bool {
-        sharedReturn({
-            return self._dataSource.isEmpty
-        })
+        defer { self.mutex.unlock_shared() }
+        self.mutex.lock_shared()
+
+        return self._dataSource.isEmpty
     }
 
     @inlinable
     public var keyArray : [K] {
-        sharedReturn({
-            self._keys.array
-        })
+        defer { self.mutex.unlock_shared() }
+        self.mutex.lock_shared()
+
+        return self._keys.array
     }
 
     @inlinable
     public var keys : OrderedSet<K> {
-        sharedReturn({
-            return OrderedSet<K>(self._keys)
-        })
+        self.mutex.lock_shared()
+        let copyOut = self._keys
+        self.mutex.unlock_shared()
+
+        return OrderedSet<K>(copyOut)
     }
 
     @inlinable
     public var values : [V] {
-        sharedReturn({
-            return self._keys.compactMap({
-                return self._dataSource[$0]
-            })
-        })
+        self.mutex.lock_shared()
+        let copyOutKeys = self._keys.array
+        let copyOutSource = self._dataSource
+        self.mutex.unlock_shared()
+
+        return copyOutKeys.compactMap({ copyOutSource[$0] })
     }
 
     @inlinable
     public func index(of key: K) -> Int? {
-        sharedReturn({
-            return self._keys.index(of: key)
-        })
+        defer { self.mutex.unlock_shared() }
+        self.mutex.lock_shared()
+
+        return self._keys.index(of: key)
     }
 
     @inlinable
     public var lastKey : K? {
-        sharedReturn({
-            self._keys.last
-        })
+        defer { self.mutex.unlock_shared() }
+        self.mutex.lock_shared()
+
+        return self._keys.last
     }
 
     @inlinable
     public var firstKey : K? {
-        sharedReturn({
-            self._keys.first
-        })
+        defer { self.mutex.unlock_shared() }
+        self.mutex.lock_shared()
+
+        return self._keys.first
     }
 
     @inlinable
     public var last : (K, V)? {
-        sharedReturn({
-            if let lastKey = self._keys.last,
-               let lastValue = self._dataSource[lastKey] {
-                return (lastKey, lastValue)
-            }
-            return nil
-        })
+        defer { self.mutex.unlock_shared() }
+        self.mutex.lock_shared()
+
+        if let lastKey = self._keys.last,
+           let lastValue = self._dataSource[lastKey] {
+            return (lastKey, lastValue)
+        }
+        return nil
     }
 
     @inlinable
     public var first : (K, V)? {
-        sharedReturn({
-            if let firstKey = self._keys.first,
-               let firstValue = self._dataSource[firstKey] {
-                return (firstKey, firstValue)
-            }
-            return nil
-        })
+        defer { self.mutex.unlock_shared() }
+        self.mutex.lock_shared()
+
+        if let firstKey = self._keys.first,
+           let firstValue = self._dataSource[firstKey] {
+            return (firstKey, firstValue)
+        }
+        return nil
     }
 
     @inlinable
     public func get(_ k: K) -> V? {
-        exclusiveReturn({
-            let value = self._dataSource[k]
+        defer { self.mutex.unlock() }
+        self.mutex.lock()
 
-            // Make the key recent
-            self._keys.remove(k)
-            self._keys.insert(k)
+        let value = self._dataSource[k]
 
-            return value
-        })
+        // Make the key recent
+        self._keys.remove(k)
+        self._keys.insert(k)
+
+        return value
     }
 
     @inlinable
@@ -151,62 +163,64 @@ public class LRUCache<K: Hashable, V> : ConcurrentObject,
     }
 
     public func put(_ v: V?, `for` key: K) {
-        exclusiveAction({
-            if let newValue = v {
-                switch self.maxCapacity {
-                case .bytes(let amount):
-                    let newSize = self.storageSize(of: newValue)
-                    var delta = newSize
+        defer { self.mutex.unlock() }
+        self.mutex.lock()
 
-                    if let oldValue = self._dataSource[key] {
-                        guard newSize < amount else { return }
+        if let newValue = v {
+            switch self.maxCapacity {
+            case .bytes(let amount):
+                let newSize = self.storageSize(of: newValue)
+                var delta = newSize
 
-                        delta -= self.storageSize(of: oldValue)
-                    }
+                if let oldValue = self._dataSource[key] {
+                    guard newSize < amount else { return }
 
-                    // Remove the old key
-                    self._keys.remove(key)
-                    self._dataSource.removeValue(forKey: key)
-
-                    // Remove eldest entries until we're below capacity
-                    while self.currentCapacity + delta > amount {
-                        if let lastKey = self._keys.first,
-                           let lastValue = self._dataSource.removeValue(forKey: lastKey) {
-                            self._keys.removeFirst()
-                            self.currentCapacity -= self.storageSize(of: lastValue)
-                        }
-                    }
-
-                    // Finally, add the new value
-                    self._keys.insert(key)
-                    self._dataSource[key] = newValue
-                    self.currentCapacity += delta
-                case .count(let amount):
-                    // Remove the old key
-                    self._keys.remove(key)
-                    let oldValue = self._dataSource.removeValue(forKey: key)
-
-                    // Remove eldest entry
-                    if oldValue == nil && self.currentCapacity + 1 > amount {
-                        if let lastKey = self._keys.first,
-                           let lastValue = self._dataSource.removeValue(forKey: lastKey) {
-                            self._keys.removeFirst()
-                            self.currentCapacity -= self.storageSize(of: lastValue)
-                        }
-                    }
-
-                    // Finally, add the new value
-                    self._keys.insert(key)
-                    self._dataSource[key] = newValue
+                    delta -= self.storageSize(of: oldValue)
                 }
-            } else {
+
+                // Remove the old key
                 self._keys.remove(key)
+                self._dataSource.removeValue(forKey: key)
 
-                if let oldValue = self._dataSource.removeValue(forKey: key) {
-                    self.currentCapacity -= self.isCountBased ? 1 : self.storageSize(of:  oldValue)
+                // Remove eldest entries until we're below capacity
+                while self.currentCapacity + delta > amount {
+                    let oldestKey = self._keys.removeFirst()
+                    if let oldestValue = self._dataSource.removeValue(forKey: oldestKey) {
+                        self.currentCapacity -= self.storageSize(of: oldestValue)
+                    }
                 }
+
+                // Finally, add the new value
+                self._keys.insert(key)
+                self._dataSource[key] = newValue
+                self.currentCapacity += delta
+            case .count(let amount):
+                // Remove the old key
+                self._keys.remove(key)
+                let oldValue = self._dataSource.removeValue(forKey: key)
+
+                // Remove eldest entry if we actually emplaced a new value
+                if oldValue == nil {
+                    while self.currentCapacity + 1 > amount {
+                        let oldestKey = self._keys.removeFirst()
+                        if let oldestValue = self._dataSource.removeValue(forKey: oldestKey) {
+                            self.currentCapacity -= self.storageSize(of: oldestValue)
+                        }
+                    }
+                }
+
+                // Finally, add the new value
+                self._keys.insert(key)
+                self._dataSource[key] = newValue
             }
-        })
+        } else {
+            self._keys.remove(key)
+
+            if let oldValue = self._dataSource.removeValue(forKey: key) {
+                self.currentCapacity -= self.isCountBased ? 1 : self.storageSize(of:  oldValue)
+            }
+        }
+
     }
 
     @inlinable
@@ -218,14 +232,15 @@ public class LRUCache<K: Hashable, V> : ConcurrentObject,
 
     @inlinable @discardableResult
     public  func computeIfAbsent(_ k: K, _ fn: () -> (V)) -> V {
-        exclusiveReturn({
-            if let value = self._dataSource[k] {
-                return value
-            } else {
-                self._keys.insert(k)
-                return self._dataSource.computeIfAbsent(k, fn)
-            }
-        })
+        defer { self.mutex.unlock() }
+        self.mutex.lock()
+
+        if let value = self._dataSource[k] {
+            return value
+        } else {
+            self._keys.insert(k)
+            return self._dataSource.computeIfAbsent(k, fn)
+        }
     }
 
     /**
@@ -233,24 +248,26 @@ public class LRUCache<K: Hashable, V> : ConcurrentObject,
      */
     @discardableResult
     public func remove(_ k: K) -> V? {
-        exclusiveReturn({
-            self._keys.remove(k)
-            if let value = self._dataSource.removeValue(forKey: k) {
-                self.currentCapacity -= self.isCountBased ? 1 : self.storageSize(of:  value)
-            }
-            return nil
-        })
+        defer { self.mutex.unlock() }
+        self.mutex.lock()
+
+        self._keys.remove(k)
+        if let value = self._dataSource.removeValue(forKey: k) {
+            self.currentCapacity -= self.isCountBased ? 1 : self.storageSize(of:  value)
+        }
+        return nil
     }
 
     /**
      Removes all elements from the map.
      */
     public func removeAll() {
-        exclusiveAction({
-            self._keys.removeAll()
-            self._dataSource.removeAll()
-            self.currentCapacity = 0
-        })
+        defer { self.mutex.unlock() }
+        self.mutex.lock()
+
+        self._keys.removeAll()
+        self._dataSource.removeAll()
+        self.currentCapacity = 0
     }
 
     //
@@ -259,74 +276,90 @@ public class LRUCache<K: Hashable, V> : ConcurrentObject,
 
     @inlinable
     public  func first(where predicate: ((K,V)) throws -> Bool) rethrows -> (K, V)? {
-        try exclusiveReturn({
-            for key in self._keys.array {
-                if let value = self._dataSource[key] {
-                    if try predicate((key, value)) {
-                        // Make the key recent
-                        self._keys.remove(key)
-                        self._keys.insert(key)
+        defer { self.mutex.unlock() }
+        self.mutex.lock()
 
-                        return (key, value)
-                    }
+        for key in self._keys.array {
+            if let value = self._dataSource[key] {
+                if try predicate((key, value)) {
+                    // Make the key recent
+                    self._keys.remove(key)
+                    self._keys.insert(key)
+
+                    return (key, value)
                 }
             }
-            return nil
-        })
+        }
+        return nil
     }
 
     @inlinable
     public func forEach(_ fn: (K,V) throws -> ()) rethrows {
-        try sharedAction({
-            try self._keys.forEach({
-                guard let value = self._dataSource[$0] else { throw CollectionError.badAccess }
-                try fn($0, value)
-            })
+        self.mutex.lock_shared()
+        let copyOutKeys = self._keys
+        let copyOutSource = self._dataSource
+        self.mutex.unlock_shared()
+
+        try copyOutKeys.forEach({
+            guard let value = copyOutSource[$0] else { throw CollectionError.badAccess }
+            try fn($0, value)
         })
     }
 
     @inlinable
     public func reduce<T>(_ initialResult: T, _ nextPartialResult: (T, (K,V)) throws -> T) rethrows -> T {
-        try sharedReturn({
-            return try self._keys.reduce(initialResult, {
-                guard let value = self._dataSource[$1] else { throw CollectionError.badAccess }
-                return try nextPartialResult($0, ($1, value))
-            })
+        self.mutex.lock_shared()
+        let copyOutKeys = self._keys
+        let copyOutSource = self._dataSource
+        self.mutex.unlock_shared()
+
+        return try copyOutKeys.reduce(initialResult, {
+            guard let value = copyOutSource[$1] else { throw CollectionError.badAccess }
+            return try nextPartialResult($0, ($1, value))
         })
     }
 
     @inlinable
     public func filter(_ fn: ((K,V)) throws -> Bool) rethrows -> [K:V] {
-        try sharedReturn({
-            return try self._dataSource.filter(fn)
-        })
+        self.mutex.lock_shared()
+        let copyOutSource = self._dataSource
+        self.mutex.unlock_shared()
+
+        return try copyOutSource.filter(fn)
     }
 
     @inlinable
     public func map<T>(_ fn: (K, V) throws -> T) rethrows -> [T] {
-        try sharedReturn({
-            try self._keys.map({
-                guard let value = self._dataSource[$0] else { throw CollectionError.badAccess }
-                return try fn($0, value)
-            })
-        })
+        self.mutex.lock_shared()
+        let copyOutKeys = self._keys
+        let copyOutSource = self._dataSource
+        self.mutex.unlock_shared()
 
+        return try copyOutKeys.map({
+            guard let value = copyOutSource[$0] else { throw CollectionError.badAccess }
+            return try fn($0, value)
+        })
     }
 
     @inlinable
     public func mapKeys<T: Hashable>(_ fn: (K) throws -> T) rethrows -> [T:V] {
-        try sharedReturn({
-            return try self._dataSource.mapKeys(fn)
-        })
+        self.mutex.lock_shared()
+        let copyOutSource = self._dataSource
+        self.mutex.unlock_shared()
+
+        return try copyOutSource.mapKeys(fn)
     }
 
     @inlinable
     public func compactMap<T>(_ fn: (K,V) throws -> T?) rethrows -> [T] {
-        try sharedReturn({
-            try self._keys.compactMap({
-                guard let value = self._dataSource[$0] else { return nil }
-                return try fn($0, value)
-            })
+        self.mutex.lock_shared()
+        let copyOutKeys = self._keys
+        let copyOutSource = self._dataSource
+        self.mutex.unlock_shared()
+
+        return try copyOutKeys.compactMap({
+            guard let value = copyOutSource[$0] else { return nil }
+            return try fn($0, value)
         })
     }
 
@@ -336,31 +369,38 @@ public class LRUCache<K: Hashable, V> : ConcurrentObject,
 
     @inlinable
     public var description: String {
-        sharedReturn({
-            var result = "{"
-            self._keys.forEach({
-                if let value = self._dataSource[$0] {
-                    result += "\($0):\(value)"
-                }
-            })
-            result += "}"
-            return result
+        self.mutex.lock_shared()
+        let copyOutKeys = self._keys
+        let copyOutSource = self._dataSource
+        self.mutex.unlock_shared()
+
+        var result = "{"
+        copyOutKeys.forEach({
+            if let value = copyOutSource[$0] {
+                result += "\($0):\(value)"
+            }
         })
+        result += "}"
+        return result
+
     }
 
     @inlinable
     public var debugDescription: String {
-        sharedReturn({
-            var result = "{\n"
-            var i = 0
-            self._keys.forEach({
-                if let value = self._dataSource[$0] {
-                    result += "[\(i)]: \($0) => \(value)\n"
-                    i += 1
-                }
-            })
-            result += "}"
-            return result
+        self.mutex.lock_shared()
+        let copyOutKeys = self._keys
+        let copyOutSource = self._dataSource
+        self.mutex.unlock_shared()
+
+        var result = "{\n"
+        var i = 0
+        copyOutKeys.forEach({
+            if let value = copyOutSource[$0] {
+                result += "[\(i)]: \($0) => \(value)\n"
+                i += 1
+            }
         })
+        result += "}"
+        return result
     }
 }
