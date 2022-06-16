@@ -86,5 +86,26 @@ public extension Dictionary {
     mutating func putAll(_ map: [Key:Value]) {
         self.merge(map, uniquingKeysWith: { return $1 })
     }
+
+    @inlinable
+    func firstKey(where fn: (Key) -> Bool) -> Key? {
+        return self.first(where: { fn($0.key) })?.key
+    }
+
+    @inlinable
+    mutating func removeFirstKey(where fn: (Key) -> Bool) -> Value? {
+        var found : Key?
+        for e in self {
+            if fn(e.key) {
+                found = e.key
+                break
+            }
+        }
+
+        if let found = found {
+            return self.removeValue(forKey: found)
+        }
+        return nil 
+    }
 }
 

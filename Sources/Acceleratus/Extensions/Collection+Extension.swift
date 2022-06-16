@@ -14,6 +14,23 @@ public extension Collection {
     }
 }
 
+public extension Set {
+    @inlinable
+    mutating func removeFirst(where fn: (Element) -> Bool) {
+        var found : Element?
+        for e in self {
+            if fn(e) {
+                found = e
+                break
+            }
+        }
+
+        if let found = found {
+            self.remove(found)
+        }
+    }
+}
+
 public extension Array {
 
     @inlinable
@@ -59,6 +76,19 @@ public extension Array {
             i += 1
         }
         self.removeLast(self.distance(from: writeIndex, to: self.endIndex))
+    }
+
+    @inlinable
+    mutating func removeFirst(where fn: (Element) -> Bool) {
+        var i = 0
+
+        while i < self.count {
+            if fn(self[i]) {
+                self.remove(at: i)
+                return
+            }
+            i += 1
+        }
     }
 }
 
