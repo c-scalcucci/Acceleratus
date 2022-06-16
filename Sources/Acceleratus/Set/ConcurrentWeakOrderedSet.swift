@@ -16,6 +16,9 @@ public class ConcurrentWeakOrderedSet<T: AnyObject & Hashable> : ConcurrentObjec
     public private(set) var indexes = [WeakHashablePointerContainer<Element>:Int]()
     public private(set) var array = [WeakHashablePointerContainer<Element>]()
 
+    public init() {
+    }
+
     public init<S: Sequence>(_ c: S) where S.Iterator.Element == T {
         c.forEach({
             self.array.append(WeakHashablePointerContainer($0))
