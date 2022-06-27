@@ -7,7 +7,7 @@
 import Foundation
 import AcceleratusObjCXX
 
-public class ConcurrentWeakHashTable : ConcurrentObject {
+public class ConcurrentWeakHashTable {
 
     public private(set) var mutex = SharedRecursiveMutex()
 
@@ -22,31 +22,17 @@ public class ConcurrentWeakHashTable : ConcurrentObject {
         })
     }
 
-    public var dataSource : NSHashTable<AnyObject> {
-        self.mutex.lock_shared()
-        let copyOut = self._dataSource.allObjects
-        self.mutex.unlock_shared()
-
-        let newSource = NSHashTable<AnyObject>.weakObjects()
-
-        copyOut.forEach({
-            newSource.add($0)
-        })
-
-        return newSource
-    }
-
     @inlinable
     public var count : Int {
-        defer { self.mutex.unlock_shared() }
-        self.mutex.lock_shared()
+        defer { self.mutex.unlock() }
+        self.mutex.lock()
         return self._dataSource.allObjects.count
     }
 
     @inlinable
     public var isEmpty : Bool {
-        defer { self.mutex.unlock_shared() }
-        self.mutex.lock_shared()
+        defer { self.mutex.unlock() }
+        self.mutex.lock()
         return self._dataSource.allObjects.count == 0
     }
 
@@ -92,9 +78,9 @@ public class ConcurrentWeakHashTable : ConcurrentObject {
 
     @inlinable
     public func forEach(_ fn: (AnyObject) throws -> ()) rethrows {
-        self.mutex.lock_shared()
+        self.mutex.lock()
         let copyOut = self._dataSource.allObjects
-        self.mutex.unlock_shared()
+        self.mutex.unlock()
 
         try copyOut.forEach({
             try fn($0)
@@ -103,9 +89,9 @@ public class ConcurrentWeakHashTable : ConcurrentObject {
 
     @inlinable
     public func reduce<X>(_ initialResult: X, _ nextPartialResult: (X, (AnyObject)) throws -> X) rethrows -> X {
-        self.mutex.lock_shared()
+        self.mutex.lock()
         let copyOut = self._dataSource.allObjects
-        self.mutex.unlock_shared()
+        self.mutex.unlock()
 
         return try copyOut.reduce(initialResult, {
             return try nextPartialResult($0, $1)
@@ -114,9 +100,9 @@ public class ConcurrentWeakHashTable : ConcurrentObject {
 
     @inlinable
     public func filter(_ fn: (AnyObject) throws -> Bool) rethrows -> [AnyObject] {
-        self.mutex.lock_shared()
+        self.mutex.lock()
         let copyOut = self._dataSource.allObjects
-        self.mutex.unlock_shared()
+        self.mutex.unlock()
 
         return try copyOut.filter({
             return try fn($0)
@@ -125,9 +111,9 @@ public class ConcurrentWeakHashTable : ConcurrentObject {
 
     @inlinable
     public func map<X>(_ fn: (AnyObject) -> X) -> [X] {
-        self.mutex.lock_shared()
+        self.mutex.lock()
         let copyOut = self._dataSource.allObjects
-        self.mutex.unlock_shared()
+        self.mutex.unlock()
 
         return copyOut.compactMap({
             return fn($0)
@@ -136,9 +122,9 @@ public class ConcurrentWeakHashTable : ConcurrentObject {
 
     @inlinable
     public func compactMap<X>(_ fn: (AnyObject) throws -> X?) rethrows -> [X] {
-        self.mutex.lock_shared()
+        self.mutex.lock()
         let copyOut = self._dataSource.allObjects
-        self.mutex.unlock_shared()
+        self.mutex.unlock()
 
         return try copyOut.compactMap({
             return try fn($0)
