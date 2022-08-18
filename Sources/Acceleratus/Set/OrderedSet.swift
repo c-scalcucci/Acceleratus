@@ -507,6 +507,37 @@ public class OrderedSet<E: Hashable>: Equatable,
     public func compactMap<X>(_ fn: (Element) throws -> X?) rethrows -> [X] {
         return try self.array.compactMap(fn)
     }
+
+    @inlinable
+    public func reSort() {
+        switch self.insertOrder {
+        case .temporal:
+            preconditionFailure("OrderedSet does not support reSort() in temporal mode!")
+        case .insertSort(let fn):
+            self.array = self.array.sorted(by: fn)
+            self.indexes.removeAll()
+            self.array.enumerated().forEach({ index, element in
+                self.indexes[element] = index
+            })
+        }
+    }
+}
+
+extension OrderedSet where Element : Comparable {
+
+    @inlinable
+    public func sort() {
+        switch self.insertOrder {
+        case .temporal:
+            preconditionFailure("OrderedSet does not support sort() in temporal mode!")
+        case .insertSort(let fn):
+            self.array = self.array.sorted(by: fn)
+            self.indexes.removeAll()
+            self.array.enumerated().forEach({ index, element in
+                self.indexes[element] = index
+            })
+        }
+    }
 }
 
 //

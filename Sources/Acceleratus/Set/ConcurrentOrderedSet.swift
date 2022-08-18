@@ -586,6 +586,37 @@ public class ConcurrentOrderedSet<E: Hashable>: ConcurrentObject,
             return try self.array.compactMap(fn)
         })
     }
+
+    @inlinable
+    public func reSort() {
+        switch self.insertOrder {
+        case .temporal:
+            preconditionFailure("ConcurrentOrderedSet does not support reSort() in temporal mode!")
+        case .insertSort(let fn):
+            self.array = self.array.sorted(by: fn)
+            self.indexes.removeAll()
+            self.array.enumerated().forEach({ index, element in
+                self.indexes[element] = index
+            })
+        }
+    }
+}
+
+extension ConcurrentOrderedSet where Element : Comparable {
+
+    @inlinable
+    public func sort() {
+        switch self.insertOrder {
+        case .temporal:
+            preconditionFailure("ConcurrentOrderedSet does not support sort() in temporal mode!")
+        case .insertSort(let fn):
+            self.array = self.array.sorted(by: fn)
+            self.indexes.removeAll()
+            self.array.enumerated().forEach({ index, element in
+                self.indexes[element] = index
+            })
+        }
+    }
 }
 
 //
