@@ -158,6 +158,7 @@ public class ConcurrentOrderedHashMap<K: Hashable, V> : ConcurrentObject {
     @inlinable
     public func pair(at index: Int) -> (K,V)? {
         sharedReturn({
+            guard index >= 0 else { return nil }
             guard self._keys.count > index else { return nil }
 
             let key = self._keys[index]
