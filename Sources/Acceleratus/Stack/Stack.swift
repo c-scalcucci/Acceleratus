@@ -76,7 +76,7 @@ public final class Stack<Element> {
     }
 
     public class ContiguousArrayStore<Element> : StackStore<Element> {
-        public var base = ContiguousArrayStore<Element>()
+        public var base = ContiguousArray<Element>()
 
         @inlinable public override func append(_ newElement: Element) {
             self.base.append(newElement)
@@ -105,5 +105,35 @@ public final class Stack<Element> {
         @inlinable public override var last : Element? {
             return self.base.last
         }
+    }
+}
+
+extension Stack where Element : Equatable {
+    @inlinable public func removeAll(_ element: Element) {
+        self.backingStore.removeAll(element)
+    }
+}
+
+extension Stack.StackStore where Element : Equatable {
+    @inlinable public func removeAll(_ element: Element) {
+        fatalError("MUST OVERRIDE IN SUBCLASS")
+    }
+}
+
+extension Stack.ArrayStore where Element : Equatable {
+    @inlinable public func removeAll(_ element: Element) {
+        self.base.removeAllPresent(element)
+    }
+}
+
+extension Stack.ContiguousArrayStore where Element : Equatable {
+    @inlinable public func removeAll(_ element: Element) {
+        self.base.removeAllPresent(element)
+    }
+}
+
+extension Stack.LinkedListStore where Element : Equatable {
+    @inlinable public func removeAll(_ element: Element) {
+        self.base.removeAll(element)
     }
 }

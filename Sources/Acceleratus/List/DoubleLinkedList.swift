@@ -438,3 +438,28 @@ extension DoubleLinkedList {
         return result
     }
 }
+
+extension DoubleLinkedList where Element : Equatable {
+
+    @inlinable public func removeAll(_ element: Element) {
+        var current : Node<T>? = head
+
+        while current != nil {
+            let next : Node<T>? = current?.next
+
+            if current?.value == element {
+                if current === head {
+                    head = current?.next
+                } else if current === tail {
+                    current?.previous?.next = nil
+                    tail = nil
+                } else {
+                    current?.previous?.next = current?.next
+                    current?.next?.previous = current?.previous
+                }
+            }
+
+            current = next
+        }
+    }
+}

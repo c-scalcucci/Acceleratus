@@ -477,3 +477,29 @@ extension LinkedList {
         return result
     }
 }
+
+extension LinkedList where Element : Equatable {
+
+    @inlinable public func removeAll(_ element: Element) {
+        var current : Node<T>? = head
+        var prev : Node<T>?
+
+        while current != nil {
+            var next : Node<T>? = current?.next
+
+            if current?.value == element {
+                if current === head {
+                    head = current?.next
+                } else if current === tail {
+                    prev?.next = nil
+                    tail = nil
+                } else {
+                    prev?.next = current?.next
+                }
+            }
+
+            prev = current
+            current = next
+        }
+    }
+}
