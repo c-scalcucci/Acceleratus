@@ -54,9 +54,6 @@ public class OrderedHashMap<K: Hashable, V> {
                     self._dataSource[k] = value
                     self._keys.insert(k)
                 }
-            } else {
-                self._dataSource.removeValue(forKey: k)
-                self._keys.remove(k)
             }
         }
     }

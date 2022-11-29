@@ -1,486 +1,440 @@
 //
-//  DoubleLinkedList.swift
+//  DoubleDoubleLinkedList.swift
+//  
 //
-//  Created by Christopher Scalcucci on 8/6/19.
+//  Created by Chris Scalcucci on 11/29/22.
 //
 
 import Foundation
 
-public class DoubleLinkedList<T: Equatable> : NSObject {
+public class DoubleLinkedList<T> : Collection {
     public typealias Element = T
+    public typealias Index = Int
+    public typealias Indices = Range<Int>
+    public typealias Iterator = IndexingIterator<DoubleLinkedList>
+    public typealias SubSequence = Slice<DoubleLinkedList<T>>
 
-    public class Node<T: Equatable> : Equatable {
+    public final class Node<T> {
         public var value: T
         public var next: Node?
-        public var prev: Node?
+        public weak var previous: Node?
 
-        public init(value: T, next: Node? = nil, prev: Node? = nil) {
+        public init(value: T) {
             self.value = value
-            self.next = next
-            self.prev = prev
-        }
-
-        public static func ==(lhs: Node<T>, rhs: Node<T>) -> Bool {
-            return lhs.value == rhs.value
         }
     }
 
-    public var head: Node<T>?
-    public var tail: Node<T>?
+    public final class DoubleLinkedListIterator : IteratorProtocol {
+        public var current : Node<T>?
+
+        public init(start: Node<T>?) {
+            self.current = start
+        }
+
+        public func next() -> Node<T>? {
+            let node = self.current
+            self.current = self.current?.next
+            return node
+        }
+    }
+
+    //
+    // MARK: Properties
+    //
+
+    public var head: Node<Element>?
+
+    public var tail : Node<Element>?
+
+    /// The number of elements in the collection
     public var count: Int = 0
 
-    @inlinable
-    public var isEmpty : Bool {
-        return count < 1
+    /// Computed property to check if the linked list is empty
+    @inlinable public var isEmpty: Bool {
+        return head == nil
     }
 
-    @inlinable
-    public func indexOf(_ v: T) -> Int? {
-        var currentPosition = 0
-        var currentNode = head
+    //
+    // MARK: Initialization
+    //
 
-        while currentNode != nil {
-            if currentNode?.value == v {
-                break
-            }
-            currentNode = currentNode?.next
-            currentPosition += 1
-        }
+    /// Default initializer
+    public init() {}
 
-        if currentNode != nil {
-            // Element was not found
-            return nil
-        }
+    public convenience init(array: Array<T>) {
+        self.init()
 
-        return currentPosition
+        array.forEach { append($0) }
+        count = array.count
     }
 
-    @inlinable @discardableResult
-    public func push(_ v: T) -> Node<T> {
-        addFront(v)
+    public convenience init(arrayLiteral elements: T...) {
+        self.init()
+
+        elements.forEach { append($0) }
+        count = elements.count
     }
 
-    @inlinable @discardableResult
-    public func addFront(_ v: T) -> Node<T> {
-        let n = Node<T>(value: v)
+    //
+    // MARK: Collection
+    //
 
-        if tail == nil {
-            // This is the first element being placed, so both front and back need to point to it
-            tail = n
-        } else {
-            // New node will be the new front, so the current front is now the success
-            n.next = head
-            head?.prev = n
-        }
+    /**
+     Accesses the element at the specified position
 
-        head = n
-        count += 1
-        return n
-    }
-
-    @inlinable @discardableResult
-    public func addLast(_ v: T) -> Node<T> {
-        let n = Node<T>(value: v)
-
-        if head == nil {
-            // This is the first element being put into the list, front need to point to it
-            head = n
-        } else {
-            // Since the new node is the new tail, previous node will be the old tail
-            n.prev = tail
-            tail?.next = n
-        }
-
-        tail = n
-        count += 1
-        return n
-    }
-
-    @inlinable
-    public func insert(_ v: T, index: Int) throws {
-        guard index > 0 && index < (count - 1) else {
-            throw CollectionError.outOfBounds
-        }
-
-        switch index {
-        case _ where index < 0:
-            throw CollectionError.outOfBounds
-        case _ where index > (count - 1):
-            throw CollectionError.outOfBounds
-        case 0:
-            addFront(v)
-        case (count - 1):
-            addLast(v)
-        default:
-            var currentNode = head
-            var currentIndex = 0
-
-            // iterate to the node at the position where we want to insert
-            while (currentIndex != index) {
-                currentIndex += 1
-                currentNode = currentNode?.next
-            }
-
-            // Current node stores the node currently at the position to insert
-            let n = Node<T>(value: v)
-
-            // Need to shift everything to the right by 1
-            n.next = currentNode
-            n.prev = currentNode?.prev
-            currentNode?.prev?.next = n
-            currentNode?.prev = n
-            count += 1
+     - parameter position: The position to subscript
+     - returns: The element at the specified position
+     */
+    @inlinable public subscript(position: Index) -> Element {
+        get {
+            return self.node(at: position).value
+        } set {
+            self.insert(newValue, at: position)
         }
     }
 
-    @inlinable
-    public func get(at index: Int) throws -> T? {
-        guard index > 0 && index < count else {
-            throw CollectionError.outOfBounds
-        }
+    /**
+     Removes and returns the first element of the collection
 
-        guard !isEmpty else {
-            throw CollectionError.outOfBounds
-        }
+     - returns: The first element if it exists
+     */
+    @inlinable public func popFirst() -> Element? {
+        guard self.count > 1 else { return nil }
 
-        var currentIndex = 0
-        var currentNode = head
-
-        while (currentIndex != index) {
-            currentIndex += 1
-            currentNode = currentNode?.next
-        }
-
-        return currentNode?.value
+        return self.remove(at: 0)
     }
 
-    @inlinable @discardableResult
-    public func dropFirst() -> T? {
-        guard !isEmpty else {
-            return nil
-        }
+    /**
+     Removes and returns the first element of the collection
 
-        let oldHead = head
+     Throws an error if the collection is empty
 
-        if count == 1 {
-            // Make sure to nil out tail if count is 1
-            // Tail also points to the node to delete
-            tail = nil
-        } else {
-            // Pointer to previous for the successor of the head
-            // about to deleted needs to be nil
-            oldHead?.next?.prev = nil
-        }
+     - returns: the first element if it exists
+     */
+    @inlinable public func removeFirst() -> Element {
+        assert(self.count >= 1)
 
-        // Update head to point to successor
-        head = head?.next
-
-        count -= 1
-
-        return oldHead?.value
+        return self.remove(at: 0)
     }
 
-    @inlinable @discardableResult
-    public func dropLast() -> T? {
-        guard !isEmpty else {
-            return nil
-        }
+    /**
+     Removes and returns the specified number of elements from
+     the beginning of the collection
 
-        let oldTail = tail
+     Throws an error if the number is out of bounds
+     */
+    @inlinable public func removeFirst(_ k: Int) {
+        assert(self.count >= k)
 
-        if count == 1 {
-            // Make sure to nil out head if count is 1
-            // Head also points to the node to delete
-            head = nil
-        } else {
-            oldTail?.prev?.next = nil
-        }
-
-        // Move back to point to predecessor
-        tail = tail?.prev
-
-        count -= 1
-
-        return oldTail?.value
-    }
-
-    @inlinable
-    public func peek() -> Node<T>? {
-        return head
-    }
-
-    @inlinable
-    public func peekLast() -> Node<T>? {
-        return tail
-    }
-
-    /// Removes the first node from the list that contains the specified value
-    @inlinable
-    public func remove(_ v: T) -> Bool {
-        guard !isEmpty else {
-            return false
-        }
-
-        if head?.value == v {
-            dropFirst()
-            return true
-        } else if tail?.value == v {
-            dropLast()
-            return true
-        } else {
-            var currentNode = head
-
-            while currentNode != nil {
-                if currentNode?.value == v {
-                    break
-                } else {
-                    currentNode = currentNode?.next
-                }
-            }
-
-            if currentNode != nil {
-                currentNode?.prev?.next = currentNode?.next
-                currentNode?.next?.prev = currentNode?.prev
-                count -= 1
-                return true
-            }
-            return false
+        for i in 0..<k {
+            self.remove(at: i)
         }
     }
 
-    /// Removes an element from the list at a given index
-    @inlinable
-    public func remove(at index: Int) throws -> T {
-        guard !isEmpty else {
-            throw CollectionError.outOfBounds
-        }
+    /**
+     Removes and returns the last element of the collection
 
-        var v : T?
+     Throws an error if the collection is empty
 
-        switch index {
-        case _ where index < 0:
-            throw CollectionError.outOfBounds
-        case _ where index > (count - 1):
-            throw CollectionError.outOfBounds
-        case 0:
-            v = dropFirst()
-        case (count - 1):
-            v = dropLast()
-        default:
-            var currentIndex = 0
-            var currentNode = head
+     - returns: the last element if it exists
+     */
+    @inlinable @discardableResult public func removeLast() -> Element {
+        assert(self.count >= 1)
 
-            while (currentIndex != index) {
-                currentIndex += 1
-                currentNode = currentNode?.next
-            }
+        let node : Node<T>? = tail
 
-            v = currentNode?.value
-            currentNode?.next?.prev = currentNode?.prev
-            currentNode?.prev?.next = currentNode?.next
-            count -= 1
-        }
+        tail?.previous?.next = nil
+        tail = nil
 
-        guard let v = v else {
-            throw CollectionError.outOfBounds
-        }
-        return v
+        return node!.value
     }
 
-    /// Returns a new DoubleLinkedList from the provided node
-    /// all the way to the tail
-    @inlinable
-    public func subList(_ node: Node<T>) -> DoubleLinkedList<T> {
-        let list = DoubleLinkedList<T>()
-        list.addLast(node.value)
-
-        var currentNode = node.next
-
-        while currentNode != nil {
-            list.addLast(currentNode!.value)
-            currentNode = currentNode?.next
-        }
-
-        return list
+    /**
+     The position of the first element in a nonempty collection
+     */
+    @inlinable public var startIndex : Index {
+        return 0
     }
 
-    /// Returns a new DoubleLinkedList starting from the first node
-    /// that contains the prescribed value until to tail
-    @inlinable
-    public func subList(_ v: T) -> DoubleLinkedList<T> {
-        var currentNode = head
-
-        while currentNode != nil {
-            if currentNode?.value == v {
-                return subList(currentNode!)
-            }
-            currentNode = currentNode?.next
-        }
-
-        return DoubleLinkedList<T>()
+    /**
+     The collection's "past the end" position - that is, the position
+     one greater than the last valid subscript argument
+     */
+    @inlinable public var endIndex : Index {
+        return self.count
     }
 
-    /// Returns a new DoubleLinkedList starting AFTER the first node
-    /// that contains the prescribed value until to tail
-    @inlinable
-    public func after(_ v: T) -> DoubleLinkedList<T> {
-        var currentNode = head
-
-        while currentNode != nil {
-            if currentNode?.value == v, let next = currentNode?.next{
-                return subList(next)
-            }
-            currentNode = currentNode?.next
-        }
-
-        return DoubleLinkedList<T>()
+    /**
+     The indices that are valid for subscripting the collection, in ascending order.
+     */
+    @inlinable public var indices : Indices {
+        return 0..<count
     }
 
-    /// Returns a new DoubleLinkedList starting FROM the first node
-    /// that contains the prescribed value until to tail
-    @inlinable
-    public func from(_ v: T) -> DoubleLinkedList<T> {
-        return subList(v)
+    /**
+     Returns the position immediately after the given index
+     */
+    @inlinable public func index(after i: Index) -> Index {
+        return i + 1
     }
 
-    /// Returns a new DoubleLinkedList starting BEFORE the first node
-    /// that contains the prescribed value until to tail
-    @inlinable
-    public func before(_ v: T) -> DoubleLinkedList<T> {
-        var currentNode = head
-
-        while currentNode != nil {
-            if currentNode?.value == v, let prev = currentNode?.prev {
-                return subList(prev)
-            }
-            currentNode = currentNode?.next
-        }
-
-        return DoubleLinkedList<T>()
+    /**
+     Offsets the given index by the specified distance
+     */
+    @inlinable public func formIndex(_ i: inout Index,
+                                     offsetBy distance: Index) {
+        i += distance
     }
 
-    /// Returns a new DoubleLinkedList starting n elements
-    /// after the head, returns an empty list if count
-    /// is greater than the number of nodes
+    /**
+     Offsets the given index by the specified distance, or so that it equals the given limiting index.
+     */
+    @inlinable public func formIndex(_ i: inout Int,
+                                     offsetBy distance: Int,
+                                     limitedBy limit: Int) -> Bool {
+        i = Swift.min(i + distance, limit)
+        return i != limit
+    }
+
+    /**
+     Returns an iterator over the elements of the collection.
+     */
+    @inlinable public func makeIterator() -> DoubleLinkedListIterator {
+        return DoubleLinkedListIterator(start: head)
+    }
+
+    /**
+        The first element of the collection
+     */
+    @inlinable public var first : Element? {
+        return self.head?.value
+    }
+
+    /**
+        The last element of the collection
+     */
+    @inlinable public var last : Element? {
+        return self.tail?.value
+    }
+
+    /**
+     Returns the distance between two indices.
+     */
+    @inlinable public func distance(from start: Index, to end: Index) -> Int {
+        return end - start
+    }
+
+    //
+    // MARK: Accessors
+    //
+
+    /// Function to return the node at a specific index. Crashes if index is out of bounds (0...self.count)
     ///
-    /// So for list [0 -> 1 -> 2 -> 3] calling advanced(by: 2)
-    /// would return [2 -> 3]
+    /// - Parameter index: Integer value of the node's index to be returned
+    /// - Returns: Node
     @inlinable
-    public func advanced(by count: Int) -> DoubleLinkedList<T> {
-        guard count <= self.count else { return DoubleLinkedList<T>() }
-        var currentIndex = 1
-        var currentNode = head
+    public func node(at index: Index) -> Node<Element> {
+        assert(index >= 0, "Index must be greater or equal to 0")
+        assert(count > index, "Index out of bounds")
 
-        while currentNode != nil && currentIndex <= count {
-            currentNode = currentNode?.next
-            currentIndex += 1
-        }
+        if index == 0 {
+            return head!
+        } else {
+            var node = head!.next
+            var i = 0
 
-        return subList(currentNode!)
-    }
+            while i < index {
+                node = node?.next
+                i += 1
+            }
 
-    /// Removes the node from its current location
-    /// and places it at the head
-    @inlinable
-    public func moveToHead(_ node: Node<T>) {
-        guard head != node else {
-            return
-        }
-
-        if tail == node {
-            tail = node.prev
-        }
-
-        node.prev?.next = node.next
-        node.next?.prev = node.prev
-
-        node.next = head
-        node.prev = nil
-
-        head?.prev = node
-        head = node
-    }
-
-    @inlinable
-    public func forEach(_ fn: (T) -> ()) {
-        var currentNode = head
-
-        while currentNode != nil {
-            fn(currentNode!.value)
-            currentNode = currentNode!.next
+            return node!
         }
     }
 
+    /// Append a value to the end of the list
+    ///
+    /// - Parameter value: The data value to be appended
     @inlinable
-    public func reduce<E>(into result: E, _ fn: @escaping (inout E, T) throws -> Void) rethrows -> E {
-        var currentNode = head
-        var result = result
-
-        while currentNode != nil {
-            try fn(&result, currentNode!.value)
-            currentNode = currentNode!.next
-        }
-
-        return result
+    public func append(_ value: T) {
+        let newNode = Node(value: value)
+        append(newNode)
     }
 
+    /// Append a copy of a Node to the end of the list.
+    ///
+    /// - Parameter node: The node containing the value to be appended
+    @inlinable
+    public func append(_ node: Node<Element>) {
+        let newNode = node
+
+        // There is a tail, append to it
+        if let lastNode = tail {
+            lastNode.next = newNode
+            newNode.previous = lastNode
+            tail = newNode
+        } else {
+            head = newNode
+            tail = newNode
+        }
+
+        count += 1
+    }
+
+    /// Append a copy of a DoubleLinkedList to the end of the list.
+    ///
+    /// - Parameter list: The list to be copied and appended.
+    @inlinable
+    public func append(_ list: DoubleLinkedList<Element>) {
+        var nodeToCopy = list.head
+
+        while let node = nodeToCopy {
+            append(node.value)
+            nodeToCopy = node.next
+        }
+    }
+
+    /// Insert a value at a specific index. Crashes if index is out of bounds (0...self.count)
+    ///
+    /// - Parameters:
+    ///   - value: The data value to be inserted
+    ///   - index: Integer value of the index to be insterted at
+    @inlinable public func insert(_ value: T, at index: Index) {
+        let newNode = Node(value: value)
+        insert(newNode, at: index)
+    }
+
+    /// Insert a copy of a node at a specific index. Crashes if index is out of bounds (0...self.count)
+    ///
+    /// - Parameters:
+    ///   - node: The node containing the value to be inserted
+    ///   - index: Integer value of the index to be inserted at
+    @inlinable
+    public func insert(_ newNode: Node<Element>, at index: Index) {
+        if index == 0 {
+            // Adding to the head
+            newNode.next = head
+            newNode.previous = nil
+            head = newNode
+        } else if index == count - 1 {
+            // Adding to the tail
+            tail?.next = newNode
+            newNode.previous = tail
+            tail = newNode
+        } else {
+            let node = node(at: index)
+
+            node.next?.previous = newNode
+            newNode.previous = node
+            newNode.next = node.next
+            node.next = newNode
+        }
+
+        count += 1
+    }
+
+    /// Insert a copy of a DoubleLinkedList at a specific index. Crashes if index is out of bounds (0...self.count)
+    ///
+    /// - Parameters:
+    ///   - list: The DoubleLinkedList to be copied and inserted
+    ///   - index: Integer value of the index to be inserted at
+    @inlinable
+    public func insert(_ list: DoubleLinkedList<Element>, at index: Index) {
+        for (i, element) in list.enumerated() {
+            self.insert(element, at: i + index)
+        }
+    }
+
+    /// Function to remove all nodes/value from the list
     @inlinable
     public func removeAll() {
-        while !isEmpty {
-            dropFirst()
-        }
+        head = nil
+        tail = nil
+        count = 0
     }
 
-    public override var description: String {
-        var result = "["
-        self.forEach({
-            result += "\($0)"
-        })
-        if self.count > 0 {
-            result.removeLast()
-        }
-        result += "]"
-        return result
+    /// Function to remove a specific node.
+    ///
+    /// - Parameter node: The node to be deleted
+    /// - Returns: The data value contained in the deleted node.
+    @inlinable @discardableResult
+    public func remove(node: Node<T>) -> T {
+        assert(head != nil)
 
+        if node === head {
+            head = node.next
+        } else {
+            node.previous?.next = node.next
+            node.next?.previous = node.previous
+        }
+
+        return node.value
     }
 
-    public override var debugDescription: String {
-        var result = "[\n"
-        var i = 0
-        self.forEach({
-            result += "[\(i)] : \($0)\n"
-            i += 1
-        })
-        result += "]"
-        return result
+    /// Function to remove a node/value at a specific index. Crashes if index is out of bounds (0...self.count)
+    ///
+    /// - Parameter index: Integer value of the index of the node to be removed
+    /// - Returns: The data value contained in the deleted node
+    @inlinable @discardableResult
+    public func remove(at index: Int) -> T {
+        return remove(node: self.node(at: index))
     }
 }
 
-extension DoubleLinkedList where T: CustomStringConvertible {
+extension DoubleLinkedList: CustomStringConvertible {
     @inlinable
     public var description: String {
-        var result = "["
-        self.forEach({
-            result += "\($0.description)"
-        })
-        if self.count > 0 {
-            result.removeLast()
+        var s = "["
+        var node = head
+        while let nd = node {
+            s += "\(nd.value)"
+            node = nd.next
+            if node != nil { s += ", " }
         }
-        result += "]"
-        return result
+        return s + "]"
     }
 }
 
-extension DoubleLinkedList where T: CustomDebugStringConvertible {
+extension DoubleLinkedList {
+    public func reverse() {
+        var current : Node<T>? = head
+        var next : Node<T>?
+        var prev : Node<T>?
+
+        head = tail
+        tail = current
+
+        while current != nil {
+            next = current?.next
+            current?.next = prev
+            prev = current
+            current = next
+        }
+    }
+}
+
+extension DoubleLinkedList {
     @inlinable
-    public var debugDescription: String {
-        var result = "[\n"
-        var i = 0
-        self.forEach({
-            result += "[\(i)] : \($0.debugDescription)\n"
-            i += 1
-        })
-        result += "]"
+    public func map<U>(transform: (T) -> U) -> DoubleLinkedList<U> {
+        let result = DoubleLinkedList<U>()
+        var node = head
+        while let nd = node {
+            result.append(transform(nd.value))
+            node = nd.next
+        }
+        return result
+    }
+
+    @inlinable
+    public func filter(predicate: (T) -> Bool) -> DoubleLinkedList<T> {
+        let result = DoubleLinkedList<T>()
+        var node = head
+        while let nd = node {
+            if predicate(nd.value) {
+                result.append(nd.value)
+            }
+            node = nd.next
+        }
         return result
     }
 }

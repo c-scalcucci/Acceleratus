@@ -6,18 +6,33 @@
 
 import Foundation
 
-public class LinkedList<T> {
+public class LinkedList<T> : Collection {
     public typealias Element = T
+    public typealias Index = Int
+    public typealias Indices = Range<Int>
+    public typealias Iterator = IndexingIterator<LinkedList>
+    public typealias SubSequence = Slice<LinkedList<T>>
 
-    public typealias Node = LinkedListNode<T>
-
-    public class LinkedListNode<T> {
+    public final class Node<T> {
         public var value: T
-        public var next: LinkedListNode?
-        public weak var previous: LinkedListNode?
+        public var next: Node?
 
         public init(value: T) {
             self.value = value
+        }
+    }
+
+    public final class LinkedListIterator : IteratorProtocol {
+        public var current : Node<T>?
+
+        public init(start: Node<T>?) {
+            self.current = start
+        }
+
+        public func next() -> Node<T>? {
+            let node = self.current
+            self.current = self.current?.next
+            return node
         }
     }
 
@@ -25,40 +40,16 @@ public class LinkedList<T> {
     // MARK: Properties
     //
 
-    public var head: Node?
+    public var head: Node<Element>?
 
-    /// Computed property to iterate through the linked list and return the last node in the list (if any)
-    @inlinable
-    public var last: Node? {
-        guard var node = head else {
-            return nil
-        }
+    public var tail : Node<Element>?
 
-        while let next = node.next {
-            node = next
-        }
-        return node
-    }
+    /// The number of elements in the collection
+    public var count: Int = 0
 
     /// Computed property to check if the linked list is empty
-    @inlinable
-    public var isEmpty: Bool {
+    @inlinable public var isEmpty: Bool {
         return head == nil
-    }
-
-    /// Computed property to iterate through the linked list and return the total number of nodes
-    @inlinable
-    public var count: Int {
-        guard var node = head else {
-            return 0
-        }
-
-        var count = 1
-        while let next = node.next {
-            node = next
-            count += 1
-        }
-        return count
     }
 
     //
@@ -72,38 +63,172 @@ public class LinkedList<T> {
         self.init()
 
         array.forEach { append($0) }
+        count = array.count
     }
 
     public convenience init(arrayLiteral elements: T...) {
         self.init()
 
         elements.forEach { append($0) }
+        count = elements.count
+    }
+
+    //
+    // MARK: Collection
+    //
+
+    /**
+        Accesses the element at the specified position
+
+        - parameter position: The position to subscript
+        - returns: The element at the specified position
+     */
+    @inlinable public subscript(position: Index) -> Element {
+        get {
+            return self.node(at: position).value
+        } set {
+            self.insert(newValue, at: position)
+        }
+    }
+
+    /**
+        Removes and returns the first element of the collection
+
+        - returns: The first element if it exists
+     */
+    @inlinable public func popFirst() -> Element? {
+        guard self.count > 1 else { return nil }
+
+        return self.remove(at: 0)
+    }
+
+    /**
+        Removes and returns the first element of the collection
+
+        Throws an error if the collection is empty
+
+        - returns: the first element if it exists
+     */
+    @inlinable public func removeFirst() -> Element {
+        assert(self.count >= 1)
+
+        return self.remove(at: 0)
+    }
+
+    /**
+        Removes and returns the specified number of elements from
+        the beginning of the collection
+
+        Throws an error if the number is out of bounds
+     */
+    @inlinable public func removeFirst(_ k: Int) {
+        assert(self.count >= k)
+
+        for i in 0..<k {
+            self.remove(at: i)
+        }
+    }
+
+    /**
+        Removes and returns the last element of the collection
+
+        Throws an error if the collection is empty
+
+        - returns: the last element if it exists
+     */
+    @inlinable @discardableResult public func removeLast() -> Element {
+        assert(self.count >= 1)
+
+        return self.remove(at: self.count - 1)
+    }
+
+    /**
+        The position of the first element in a nonempty collection
+     */
+    @inlinable public var startIndex : Index {
+        return 0
+    }
+
+    /**
+        The collection's "past the end" position - that is, the position
+        one greater than the last valid subscript argument
+     */
+    @inlinable public var endIndex : Index {
+        return self.count
+    }
+
+    /**
+        The indices that are valid for subscripting the collection, in ascending order.
+     */
+    @inlinable public var indices : Indices {
+        return 0..<count
+    }
+
+    /**
+        Returns the position immediately after the given index
+     */
+    @inlinable public func index(after i: Index) -> Index {
+        return i + 1
+    }
+
+    /**
+        Offsets the given index by the specified distance
+     */
+    @inlinable public func formIndex(_ i: inout Index,
+                                     offsetBy distance: Index) {
+        i += distance
+    }
+
+    /**
+        Offsets the given index by the specified distance, or so that it equals the given limiting index.
+     */
+    @inlinable public func formIndex(_ i: inout Int,
+                                     offsetBy distance: Int,
+                                     limitedBy limit: Int) -> Bool {
+        i = Swift.min(i + distance, limit)
+        return i != limit
+    }
+
+    /**
+        Returns an iterator over the elements of the collection.
+     */
+    @inlinable public func makeIterator() -> LinkedListIterator {
+        return LinkedListIterator(start: head)
+    }
+
+    /**
+        The first element of the collection
+     */
+    @inlinable public var first : Element? {
+        return self.head?.value
+    }
+
+    /**
+        The last element of the collection
+     */
+    @inlinable public var last : Element? {
+        return self.tail?.value
+    }
+
+    /**
+        Returns the distance between two indices.
+     */
+    @inlinable public func distance(from start: Index, to end: Index) -> Int {
+        return end - start
     }
 
     //
     // MARK: Accessors
     //
 
-
-    /// Subscript function to return the node at a specific index
-    ///
-    /// - Parameter index: Integer value of the requested value's index
-    @inlinable
-    public subscript(index: Int) -> T {
-        get {
-            let node = self.node(at: index)
-            return node.value
-        }
-    }
-
     /// Function to return the node at a specific index. Crashes if index is out of bounds (0...self.count)
     ///
     /// - Parameter index: Integer value of the node's index to be returned
-    /// - Returns: LinkedListNode
+    /// - Returns: Node
     @inlinable
-    public func node(at index: Int) -> Node {
-        assert(head != nil, "List is empty")
-        assert(index >= 0, "index must be greater or equal to 0")
+    public func node(at index: Index) -> Node<Element> {
+        assert(index >= 0, "Index must be greater or equal to 0")
+        assert(count > index, "Index out of bounds")
 
         if index == 0 {
             return head!
@@ -113,13 +238,9 @@ public class LinkedList<T> {
 
             while i < index {
                 node = node?.next
-                if node == nil {
-                    break
-                }
                 i += 1
             }
 
-            assert(node != nil, "index is out of bounds.")
             return node!
         }
     }
@@ -133,26 +254,32 @@ public class LinkedList<T> {
         append(newNode)
     }
 
-    /// Append a copy of a LinkedListNode to the end of the list.
+    /// Append a copy of a Node to the end of the list.
     ///
     /// - Parameter node: The node containing the value to be appended
     @inlinable
-    public func append(_ node: Node) {
+    public func append(_ node: Node<Element>) {
         let newNode = node
-        if let lastNode = last {
-            newNode.previous = lastNode
+
+        // There is a tail, append to it
+        if let lastNode = tail {
             lastNode.next = newNode
+            tail = newNode
         } else {
             head = newNode
+            tail = newNode
         }
+
+        count += 1
     }
 
     /// Append a copy of a LinkedList to the end of the list.
     ///
     /// - Parameter list: The list to be copied and appended.
     @inlinable
-    public func append(_ list: LinkedList) {
+    public func append(_ list: LinkedList<Element>) {
         var nodeToCopy = list.head
+
         while let node = nodeToCopy {
             append(node.value)
             nodeToCopy = node.next
@@ -164,8 +291,7 @@ public class LinkedList<T> {
     /// - Parameters:
     ///   - value: The data value to be inserted
     ///   - index: Integer value of the index to be insterted at
-    @inlinable
-    public func insert(_ value: T, at index: Int) {
+    @inlinable public func insert(_ value: T, at index: Index) {
         let newNode = Node(value: value)
         insert(newNode, at: index)
     }
@@ -176,19 +302,23 @@ public class LinkedList<T> {
     ///   - node: The node containing the value to be inserted
     ///   - index: Integer value of the index to be inserted at
     @inlinable
-    public func insert(_ newNode: Node, at index: Int) {
+    public func insert(_ newNode: Node<Element>, at index: Index) {
         if index == 0 {
+            // Adding to the head
             newNode.next = head
-            head?.previous = newNode
             head = newNode
+        } else if index == count - 1 {
+            // Adding to the tail
+            tail?.next = newNode
+            tail = newNode
         } else {
             let prev = node(at: index - 1)
             let next = prev.next
-            newNode.previous = prev
             newNode.next = next
-            next?.previous = newNode
             prev.next = newNode
         }
+
+        count += 1
     }
 
     /// Insert a copy of a LinkedList at a specific index. Crashes if index is out of bounds (0...self.count)
@@ -197,21 +327,47 @@ public class LinkedList<T> {
     ///   - list: The LinkedList to be copied and inserted
     ///   - index: Integer value of the index to be inserted at
     @inlinable
-    public func insert(_ list: LinkedList, at index: Int) {
+    public func insert(_ list: LinkedList<Element>, at index: Index) {
         guard !list.isEmpty else { return }
 
         if index == 0 {
-            list.last?.next = head
-            head = list.head
+            // Adding to the head
+            var currentNode : Node<T>? = nil
+            var currentIteratorNode : Node<T>? = list.head
+
+            if head == nil {
+                head = Node(value: currentIteratorNode!.value)
+                currentNode = head
+            }
+
+            while currentIteratorNode != nil {
+                if let next = currentIteratorNode?.next {
+                    let copy = Node(value: next.value)
+                    currentNode?.next = copy
+                    currentNode = copy
+                    currentIteratorNode = currentIteratorNode?.next
+                    tail = copy
+                    count += 1
+                }
+            }
+        } else if index == count - 1 {
+            // Adding to the tail
+            var currentIteratorNode : Node<T>? = list.head
+
+            while currentIteratorNode != nil {
+                self.append(currentIteratorNode!)
+                currentIteratorNode = currentIteratorNode?.next
+            }
         } else {
-            let prev = node(at: index - 1)
-            let next = prev.next
+            // Inserting somewhere in the middle
+            var currentIteratorNode : Node<T>? = list.head
+            var currentIndex : Index = index
 
-            prev.next = list.head
-            list.head?.previous = prev
-
-            list.last?.next = next
-            next?.previous = list.last
+            while currentIteratorNode != nil {
+                self.insert(currentIteratorNode!.value, at: currentIndex)
+                currentIteratorNode = currentIteratorNode?.next
+                currentIndex += 1
+            }
         }
     }
 
@@ -219,6 +375,8 @@ public class LinkedList<T> {
     @inlinable
     public func removeAll() {
         head = nil
+        tail = nil
+        count = 0
     }
 
     /// Function to remove a specific node.
@@ -226,29 +384,30 @@ public class LinkedList<T> {
     /// - Parameter node: The node to be deleted
     /// - Returns: The data value contained in the deleted node.
     @inlinable @discardableResult
-    public func remove(node: Node) -> T {
-        let prev = node.previous
-        let next = node.next
+    public func remove(node: Node<T>) -> T {
+        assert(head != nil)
 
-        if let prev = prev {
-            prev.next = next
-        } else {
-            head = next
+        if node === head {
+            head = node.next
         }
-        next?.previous = prev
 
-        node.previous = nil
-        node.next = nil
+        var currentNode : Node<T>? = head
+
+        for _ in 0..<count {
+            if currentNode?.next === node {
+                currentNode?.next = node.next
+
+                if node === tail {
+                    tail = currentNode
+                }
+
+                count -= 1
+            }
+
+            currentNode = currentNode?.next
+        }
+
         return node.value
-    }
-
-    /// Function to remove the last node/value in the list. Crashes if the list is empty
-    ///
-    /// - Returns: The data value contained in the deleted node.
-    @inlinable @discardableResult
-    public func removeLast() -> T {
-        assert(!isEmpty)
-        return remove(node: last!)
     }
 
     /// Function to remove a node/value at a specific index. Crashes if index is out of bounds (0...self.count)
@@ -257,10 +416,8 @@ public class LinkedList<T> {
     /// - Returns: The data value contained in the deleted node
     @inlinable @discardableResult
     public func remove(at index: Int) -> T {
-        let node = self.node(at: index)
-        return remove(node: node)
+        return remove(node: self.node(at: index))
     }
-
 }
 
 extension LinkedList: CustomStringConvertible {
@@ -278,13 +435,19 @@ extension LinkedList: CustomStringConvertible {
 }
 
 extension LinkedList {
-    @inlinable
     public func reverse() {
-        var node = head
-        while let currentNode = node {
-            node = currentNode.next
-            swap(&currentNode.next, &currentNode.previous)
-            head = currentNode
+        var current : Node<T>? = head
+        var next : Node<T>?
+        var prev : Node<T>?
+
+        head = tail
+        tail = current
+
+        while current != nil {
+            next = current?.next
+            current?.next = prev
+            prev = current
+            current = next
         }
     }
 }
@@ -314,66 +477,3 @@ extension LinkedList {
         return result
     }
 }
-
-extension LinkedList: Collection {
-
-    public typealias Index = LinkedListIndex<T>
-
-    /// The position of the first element in a nonempty collection.
-    ///
-    /// If the collection is empty, `startIndex` is equal to `endIndex`.
-    /// - Complexity: O(1)
-    @inlinable
-    public var startIndex: Index {
-        get {
-            return LinkedListIndex<T>(node: head, tag: 0)
-        }
-    }
-
-    /// The collection's "past the end" position---that is, the position one
-    /// greater than the last valid subscript argument.
-    /// - Complexity: O(n), where n is the number of elements in the list. This can be improved by keeping a reference
-    ///   to the last node in the collection.
-    @inlinable
-    public var endIndex: Index {
-        get {
-            if let h = self.head {
-                return LinkedListIndex<T>(node: h, tag: count)
-            } else {
-                return LinkedListIndex<T>(node: nil, tag: startIndex.tag)
-            }
-        }
-    }
-
-    @inlinable
-    public subscript(position: Index) -> T {
-        get {
-            return position.node!.value
-        }
-    }
-
-    public func index(after idx: Index) -> Index {
-        return LinkedListIndex<T>(node: idx.node?.next, tag: idx.tag + 1)
-    }
-}
-
-// MARK: - Collection Index
-/// Custom index type that contains a reference to the node at index 'tag'
-public struct LinkedListIndex<T>: Comparable {
-    public let node: LinkedList<T>.LinkedListNode<T>?
-    public let tag: Int
-
-    public init(node: LinkedList<T>.LinkedListNode<T>?, tag: Int) {
-        self.node = node
-        self.tag = tag
-    }
-
-    public static func==<T>(lhs: LinkedListIndex<T>, rhs: LinkedListIndex<T>) -> Bool {
-        return (lhs.tag == rhs.tag)
-    }
-
-    public static func< <T>(lhs: LinkedListIndex<T>, rhs: LinkedListIndex<T>) -> Bool {
-        return (lhs.tag < rhs.tag)
-    }
-}
-
