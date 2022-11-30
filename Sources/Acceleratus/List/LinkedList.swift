@@ -418,6 +418,32 @@ public class LinkedList<T> : Collection {
     public func remove(at index: Int) -> T {
         return remove(node: self.node(at: index))
     }
+
+    @inlinable
+    public func removeAll(where shouldBeRemoved: @escaping (Element) throws -> Bool) rethrows {
+        var current : Node<T>? = head
+        var prev : Node<T>?
+
+        while current != nil {
+            let next : Node<T>? = current?.next
+
+            do {
+                if try shouldBeRemoved(current!.value) {
+                    if current === head {
+                        head = current?.next
+                    } else if current === tail {
+                        prev?.next = nil
+                        tail = nil
+                    } else {
+                        prev?.next = current?.next
+                    }
+                }
+            } catch {}
+
+            prev = current
+            current = next
+        }
+    }
 }
 
 extension LinkedList: CustomStringConvertible {
@@ -475,31 +501,5 @@ extension LinkedList {
             node = nd.next
         }
         return result
-    }
-}
-
-extension LinkedList where Element : Equatable {
-
-    @inlinable public func removeAll(_ element: Element) {
-        var current : Node<T>? = head
-        var prev : Node<T>?
-
-        while current != nil {
-            var next : Node<T>? = current?.next
-
-            if current?.value == element {
-                if current === head {
-                    head = current?.next
-                } else if current === tail {
-                    prev?.next = nil
-                    tail = nil
-                } else {
-                    prev?.next = current?.next
-                }
-            }
-
-            prev = current
-            current = next
-        }
     }
 }

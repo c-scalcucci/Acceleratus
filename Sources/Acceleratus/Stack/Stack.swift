@@ -44,6 +44,10 @@ public final class Stack<Element> {
         return self.backingStore.last
     }
 
+    @inlinable public func removeAll(where shouldBeRemoved: @escaping (Element) throws -> Bool) rethrows {
+        try self.backingStore.removeAll(where: shouldBeRemoved)
+    }
+
     public class StackStore<Element> {
 
         @inlinable public func append(_ newElement: Element) {
@@ -55,6 +59,14 @@ public final class Stack<Element> {
         }
 
         @inlinable public var last : Element? {
+            fatalError("MUST OVERRIDE IN SUBCLASS")
+        }
+
+        @inlinable public var count : Int {
+            fatalError("MUST OVERRIDE IN SUBCLASS")
+        }
+
+        @inlinable public func removeAll(where shouldBeRemoved: @escaping (Element) throws -> Bool) rethrows {
             fatalError("MUST OVERRIDE IN SUBCLASS")
         }
     }
@@ -73,6 +85,14 @@ public final class Stack<Element> {
         @inlinable public override var last : Element? {
             return self.base.last
         }
+
+        @inlinable public override var count : Int {
+            return self.base.count
+        }
+
+        @inlinable public override func removeAll(where shouldBeRemoved: @escaping (Element) throws -> Bool) rethrows {
+            try self.base.removeAll(where: shouldBeRemoved)
+        }
     }
 
     public class ContiguousArrayStore<Element> : StackStore<Element> {
@@ -88,6 +108,14 @@ public final class Stack<Element> {
 
         @inlinable public override var last : Element? {
             return self.base.last
+        }
+
+        @inlinable public override var count : Int {
+            return self.base.count
+        }
+
+        @inlinable public override func removeAll(where shouldBeRemoved: @escaping (Element) throws -> Bool) rethrows {
+            try self.base.removeAll(where: shouldBeRemoved)
         }
     }
 
@@ -105,35 +133,13 @@ public final class Stack<Element> {
         @inlinable public override var last : Element? {
             return self.base.last
         }
-    }
-}
 
-extension Stack where Element : Equatable {
-    @inlinable public func removeAll(_ element: Element) {
-        self.backingStore.removeAll(element)
-    }
-}
+        @inlinable public override var count : Int {
+            return self.base.count
+        }
 
-extension Stack.StackStore where Element : Equatable {
-    @inlinable public func removeAll(_ element: Element) {
-        fatalError("MUST OVERRIDE IN SUBCLASS")
-    }
-}
-
-extension Stack.ArrayStore where Element : Equatable {
-    @inlinable public func removeAll(_ element: Element) {
-        self.base.removeAllPresent(element)
-    }
-}
-
-extension Stack.ContiguousArrayStore where Element : Equatable {
-    @inlinable public func removeAll(_ element: Element) {
-        self.base.removeAllPresent(element)
-    }
-}
-
-extension Stack.LinkedListStore where Element : Equatable {
-    @inlinable public func removeAll(_ element: Element) {
-        self.base.removeAll(element)
+        @inlinable public override func removeAll(where shouldBeRemoved: @escaping (Element) throws -> Bool) rethrows {
+            try self.base.removeAll(where: shouldBeRemoved)
+        }
     }
 }
