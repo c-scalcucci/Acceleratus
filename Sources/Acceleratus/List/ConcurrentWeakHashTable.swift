@@ -130,4 +130,13 @@ public class ConcurrentWeakHashTable {
             return try fn($0)
         })
     }
+
+    @inlinable
+    public  func first(where predicate: (AnyObject) throws -> Bool) rethrows -> AnyObject? {
+        self.mutex.lock()
+        let copyOut = self._dataSource.allObjects
+        self.mutex.unlock()
+
+        return try copyOut.first(where: { try predicate($0) })
+    }
 }
