@@ -5,7 +5,7 @@
 //
 
 import Foundation
-import AcceleratusObjCXX
+import AcceleratusMutex
 
 public class ConcurrentWeakHashTable {
 

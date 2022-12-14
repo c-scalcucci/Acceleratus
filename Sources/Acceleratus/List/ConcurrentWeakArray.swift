@@ -6,7 +6,7 @@
 //
 
 import Foundation
-import AcceleratusObjCXX
+import AcceleratusMutex
 
 public class ConcurrentWeakArray<T: AnyObject> : ConcurrentObject {
     public typealias Element = T

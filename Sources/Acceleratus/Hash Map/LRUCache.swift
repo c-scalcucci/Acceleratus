@@ -6,7 +6,7 @@
 //
 
 import Foundation
-import AcceleratusObjCXX
+import AcceleratusMutex
 
 public enum CapacityType {
     case bytes (Int)

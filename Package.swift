@@ -19,14 +19,14 @@ let package = Package(
         ),
         .library(
             name: "AcceleratusMutex",
-            targets: ["AcceleratusObjCXX"]
+            targets: ["AcceleratusMutex"]
         )
     ],
     dependencies: [
     ],
     targets: [
         .target(
-            name: "AcceleratusObjCXX",
+            name: "AcceleratusMutex",
             exclude: ["include"] // will be fixed with PR-2814
         ),
         .target(
@@ -34,7 +34,7 @@ let package = Package(
         ),
         .target(
             name: "Acceleratus",
-            dependencies: ["AcceleratusObjCXX"]
+            dependencies: ["AcceleratusMutex"]
         ),
         .testTarget(
             name: "AcceleratusTests",
