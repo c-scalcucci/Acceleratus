@@ -11,10 +11,16 @@ let package = Package(
     products: [
         .library(
             name: "Acceleratus",
-            targets: ["Acceleratus"]),
+            targets: ["Acceleratus"]
+        ),
         .library(
             name: "AcceleratusExtensions",
-            targets: ["AcceleratusExtensions"])
+            targets: ["AcceleratusExtensions"]
+        ),
+        .library(
+            name: "AcceleratusMutex",
+            targets: ["AcceleratusObjCXX"]
+        )
     ],
     dependencies: [
     ],
